@@ -1,6 +1,6 @@
 module github.com/FelipeFuhr/ffreis-platform-go-analyzers
 
-go 1.25.0
+go 1.25.8
 
 require golang.org/x/tools v0.45.0
 
