@@ -41,7 +41,9 @@ func protectedSelectorRecover() {
 }
 
 func emptyLiteralIsFlagged() {
-	go func() {}() // want "goroutine literal does not begin with"
+	go func() { // want "goroutine literal does not begin with"
+		// intentionally empty: test fixture verifying that an empty goroutine literal is flagged
+	}()
 }
 
 func deferButNotRecoverIsFlagged() {
@@ -51,7 +53,9 @@ func deferButNotRecoverIsFlagged() {
 	}()
 }
 
-func workerFn() {}
+func workerFn() {
+	// intentionally empty: test fixture representing a named function used in go-statement tests
+}
 
 func recoverFn() {
 	if r := recover(); r != nil {
