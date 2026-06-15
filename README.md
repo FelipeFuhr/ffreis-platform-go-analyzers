@@ -1,5 +1,9 @@
 # ffreis-platform-go-analyzers
 
+<!-- ffreis-badges:start -->
+[![CI](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/FelipeFuhr/ffreis-badges/main/badges/ffreis-platform-go-analyzers/ci.json)](https://github.com/FelipeFuhr/ffreis-platform-go-analyzers/actions) [![License](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/FelipeFuhr/ffreis-badges/main/badges/ffreis-platform-go-analyzers/license.json)](https://github.com/FelipeFuhr/ffreis-platform-go-analyzers/blob/main/LICENSE)
+<!-- ffreis-badges:end -->
+
 Custom Go static analyzers for the ffreis platform fleet, each shipped as a
 standalone binary plus an importable `*analysis.Analyzer` for use in
 golangci-lint v2 custom-plugin configs.
