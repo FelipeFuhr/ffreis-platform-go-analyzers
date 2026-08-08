@@ -4,9 +4,14 @@ name: CI
 # Job dependency graph:
 #
 #   secret-scan ─┐
-#   fmt ─────────┼─→ lint ─┐
-#                └─→ test ──┘
+#   fmt ─────────┼─→ lint ─────────────┐
+#                ├─→ test ─────────────┤
+#                ├─→ coverage ─────────┤
+#                └─→ integration-coverage
 #
+# coverage/integration-coverage gate line coverage (75%) independently of
+# lint/test; integration-coverage is a no-op skip until //go:build integration
+# files exist.
 # Any failure blocks downstream jobs.
 
 on:
@@ -52,7 +57,7 @@ jobs:
     name: Format (gofmt)
     permissions:
       contents: read
-    uses: FelipeFuhr/ffreis-workflows-go/.github/workflows/go-fmt.yml@d9b0146bb491bf06a79c9c6289034537522cbed3
+    uses: FelipeFuhr/ffreis-workflows-go/.github/workflows/go-fmt.yml@86fd6e3b73fbe6d4f83280ef2661605d441a20e3 # v1.4.0
     with:
       go-version: ${{ vars.GO_VERSION || '1.25.0' }}
       working-directory: "."
@@ -94,8 +99,38 @@ jobs:
     name: Test
     permissions:
       contents: read
-    uses: FelipeFuhr/ffreis-workflows-go/.github/workflows/go-test.yml@d9b0146bb491bf06a79c9c6289034537522cbed3
+      # go-test.yml's job unconditionally requests id-token: write for its L2
+      # S3-cache OIDC step (no-op here — we pass no go-cache-s3 input, so the
+      # step never runs). The caller must still grant the ceiling or GitHub
+      # rejects the whole workflow file at parse time with startup_failure.
+      id-token: write
+    uses: FelipeFuhr/ffreis-workflows-go/.github/workflows/go-test.yml@86fd6e3b73fbe6d4f83280ef2661605d441a20e3 # v1.4.0
     with:
       go-version: ${{ vars.GO_VERSION || '1.25.0' }}
       working-directory: "."
       run-govulncheck: false
+
+  # ── 5. Coverage gates (unit + integration) ─────────────────────────────────
+  coverage:
+    if: ${{ !github.event.pull_request.draft }}
+    name: Coverage
+    needs: [fmt]
+    permissions:
+      contents: read
+    uses: FelipeFuhr/ffreis-workflows-go/.github/workflows/go-coverage.yml@86fd6e3b73fbe6d4f83280ef2661605d441a20e3 # v1.4.0
+    with:
+      go-version: ${{ vars.GO_VERSION || '1.25.0' }}
+      working-directory: "."
+      coverage-threshold: 75
+
+  integration-coverage:
+    if: ${{ !github.event.pull_request.draft }}
+    name: Integration Coverage
+    needs: [fmt]
+    permissions:
+      contents: read
+    uses: FelipeFuhr/ffreis-workflows-go/.github/workflows/go-integration-coverage.yml@86fd6e3b73fbe6d4f83280ef2661605d441a20e3 # v1.4.0
+    with:
+      go-version: ${{ vars.GO_VERSION || '1.25.0' }}
+      working-directory: "."
+      coverage-threshold: 75

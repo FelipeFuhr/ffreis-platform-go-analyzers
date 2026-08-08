@@ -4,7 +4,12 @@ BIN_DIR  ?= ./bin
 GO       ?= go
 GITLEAKS ?= gitleaks
 
-.PHONY: help build test lint fmt fmt-check ci secrets-scan-staged clean install
+COVERAGE_MIN       ?= 75
+MUTATION_PACKAGES  ?= ./analyzers/...
+MUTATION_THRESHOLD ?= 60
+
+.PHONY: help build test lint fmt fmt-check ci secrets-scan-staged clean install \
+        coverage-gate integration-coverage-gate mutation
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -30,7 +35,17 @@ fmt-check: ## Check Go formatting without modifying files
 lint: ## Run golangci-lint (if installed)
 	@command -v golangci-lint >/dev/null && golangci-lint run ./... || echo "golangci-lint not installed; skipping"
 
-ci: fmt-check lint test ## Run all CI checks locally
+coverage-gate: ## Run tests with coverage and fail if below COVERAGE_MIN
+	@COVERAGE_MIN="$(COVERAGE_MIN)" ./scripts/hooks/check_coverage_gate.sh
+
+integration-coverage-gate: ## Run //go:build integration tests with coverage and fail if below COVERAGE_MIN (no-op if none exist)
+	@COVERAGE_MIN="$(COVERAGE_MIN)" ./scripts/hooks/check_integration_coverage_gate.sh
+
+mutation: ## Run mutation testing with gremlins (slow — CI only)
+	@which gremlins >/dev/null 2>&1 || go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
+	gremlins unleash --threshold-efficacy $(MUTATION_THRESHOLD) $(MUTATION_PACKAGES)
+
+ci: fmt-check lint test coverage-gate ## Run all CI checks locally
 
 secrets-scan-staged: ## Scan staged diff for secrets (called by lefthook pre-commit)
 	@command -v $(GITLEAKS) >/dev/null 2>&1 || (echo "Missing tool: $(GITLEAKS). Install: https://github.com/gitleaks/gitleaks#installing" && exit 1)
