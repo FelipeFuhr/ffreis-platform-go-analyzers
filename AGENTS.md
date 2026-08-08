@@ -45,8 +45,14 @@ Exit code is non-zero when at least one diagnostic is reported.
 ## Tests
 
 ```bash
-make test     # runs with -race -shuffle=on per the workspace invariant
+make test              # runs with -race -shuffle=on per the workspace invariant
+make coverage-gate      # fails below COVERAGE_MIN (75%, fleet floor)
+make mutation           # gremlins mutation testing, scoped to ./analyzers/... (slow — CI only)
 ```
+
+`cmd/nakedgo`'s `main.go` is a 6-line `singlechecker.Main` wrapper and is
+excluded from `MUTATION_PACKAGES` — the actual detection/skip logic lives in
+`analyzers/nakedgo` and is what mutation testing targets.
 
 ## Public repo — private-repo hygiene
 
