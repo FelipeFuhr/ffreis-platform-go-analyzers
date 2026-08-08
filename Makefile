@@ -9,7 +9,7 @@ MUTATION_PACKAGES  ?= ./analyzers/...
 MUTATION_THRESHOLD ?= 60
 
 .PHONY: help build test lint fmt fmt-check ci secrets-scan-staged clean install \
-        coverage-gate integration-coverage-gate mutation
+        coverage-gate integration-coverage-gate mutation quality-gates
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -46,6 +46,8 @@ mutation: ## Run mutation testing with gremlins (slow — CI only)
 	gremlins unleash --threshold-efficacy $(MUTATION_THRESHOLD) $(MUTATION_PACKAGES)
 
 ci: fmt-check lint test coverage-gate ## Run all CI checks locally
+
+quality-gates: test coverage-gate integration-coverage-gate ## Run strict pre-push quality gates (required by ffreis-platform-standards lefthook complex tier)
 
 secrets-scan-staged: ## Scan staged diff for secrets (called by lefthook pre-commit)
 	@command -v $(GITLEAKS) >/dev/null 2>&1 || (echo "Missing tool: $(GITLEAKS). Install: https://github.com/gitleaks/gitleaks#installing" && exit 1)
