@@ -7,9 +7,11 @@ GITLEAKS ?= gitleaks
 COVERAGE_MIN       ?= 75
 MUTATION_PACKAGES  ?= ./analyzers/...
 MUTATION_THRESHOLD ?= 60
+FUZZ_PACKAGES      ?= ./...
+FUZZ_TIME          ?= 30s
 
-.PHONY: help build test lint fmt fmt-check ci secrets-scan-staged clean install \
-        coverage-gate integration-coverage-gate mutation quality-gates
+.PHONY: help build build-all fuzz test lint fmt fmt-check ci secrets-scan-staged clean install \
+		coverage-gate integration-coverage-gate mutation quality-gates
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -17,6 +19,11 @@ help: ## Show this help
 build: ## Build all analyzer binaries into ./bin
 	@mkdir -p $(BIN_DIR)
 	$(GO) build -o $(BIN_DIR)/nakedgo ./cmd/nakedgo
+
+build-all: build ## Alias required by the lefthook release tier
+
+fuzz: ## Run all Fuzz* targets for FUZZ_TIME each (no-op when none exist)
+	@for pkg in $$($(GO) list $(FUZZ_PACKAGES)); do targets=$$($(GO) test -list 'Fuzz.*' "$$pkg" 2>/dev/null | grep '^Fuzz' || true); for target in $$targets; do $(GO) test -run='^$$' -fuzz="^$${target}$$" -fuzztime="$(FUZZ_TIME)" "$$pkg"; done; done
 
 test: ## Run unit + analysistest with race + shuffle
 	$(GO) test -race -shuffle=on ./...
